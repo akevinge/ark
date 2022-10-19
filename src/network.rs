@@ -2,11 +2,7 @@
 // - http://www.cs.newpaltz.edu/~easwaran/CCN/Week13/ARP.pdf
 // - https://www.sciencedirect.com/topics/computer-science/address-resolution-protocol-request#:~:text=ARP%20Packets,same%20way%20as%20IP%20packets
 
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    thread,
-    time::Duration,
-};
+use std::net::Ipv4Addr;
 
 use pnet::{
     packet::{
@@ -14,12 +10,12 @@ use pnet::{
             ArpHardwareTypes::{self},
             ArpOperations, MutableArpPacket,
         },
-        ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket},
+        ethernet::{EtherTypes, MutableEthernetPacket},
         Packet,
     },
     util::MacAddr,
 };
-use pnet_datalink::{Channel, NetworkInterface};
+use pnet_datalink::NetworkInterface;
 
 const ARP_PACKET_SIZE: usize = 28;
 const ETHERNET_HW_ADDR_LEN: u8 = 6;
@@ -27,7 +23,7 @@ const IPV4_ADDR_LEN: u8 = 4;
 const ETHERNET_FRAME_SIZE: usize = 42; // ARP_PACKET_SIZE + 14 for the ethernet header
 
 /// Generates ARP message wrapped in an Ethernet frame
-fn gen_arp_request(
+pub fn gen_arp_request(
     source_mac: MacAddr,
     source_ip: Ipv4Addr,
     target_ip: Ipv4Addr,
@@ -62,107 +58,7 @@ fn gen_arp_request(
     eth_packet.packet().try_into().ok()
 }
 
-pub enum ArpScannerErr {
-    OpenChannelError,
-    InterfaceError(InterfaceErr),
-    UnsupportedMask,
-}
-
-pub enum InterfaceErr {
-    /// No default interface is found
-    NotFound,
-    /// No IPv4 mask is found for cooresponding interface
-    InvalidMask,
-    /// Interface has no mac address
-    NoMac,
-    /// Interface has no ip address
-    NoIpv4,
-}
-
-pub fn init_arp_scanner() -> Result<(), ArpScannerErr> {
-    let interfaces = pnet_datalink::interfaces();
-
-    let interface = match select_default_interface(&interfaces) {
-        Some(interface) => interface,
-        _ => return Err(ArpScannerErr::InterfaceError(InterfaceErr::NotFound)),
-    };
-
-    let source_mac = match interface.mac {
-        Some(mac) => mac,
-        None => return Err(ArpScannerErr::InterfaceError(InterfaceErr::NoMac)),
-    };
-
-    let network = match interface.ips.iter().find(|ip| ip.is_ipv4()) {
-        Some(net) => net,
-        None => return Err(ArpScannerErr::InterfaceError(InterfaceErr::NoIpv4)),
-    };
-
-    let source_ip = match network.ip() {
-        IpAddr::V4(addr) => addr,
-        _ => return Err(ArpScannerErr::InterfaceError(InterfaceErr::NoIpv4)),
-    };
-
-    let subnet_mask = match network.mask() {
-        IpAddr::V4(addr) => addr,
-        _ => return Err(ArpScannerErr::InterfaceError(InterfaceErr::InvalidMask)),
-    };
-
-    let ips = match compute_subnet_ips(source_ip, subnet_mask) {
-        Some(ips) => ips,
-        None => return Err(ArpScannerErr::UnsupportedMask),
-    };
-
-    let (mut tx, mut rx) = match pnet_datalink::channel(
-        &interface,
-        pnet_datalink::Config {
-            ..pnet_datalink::Config::default()
-        },
-    ) {
-        Ok(channel) => match channel {
-            Channel::Ethernet(tx, rx) => (tx, rx),
-            _ => return Err(ArpScannerErr::OpenChannelError),
-        },
-        Err(_) => return Err(ArpScannerErr::OpenChannelError),
-    };
-
-    thread::spawn(move || loop {
-        let packet = match rx.next() {
-            Ok(buf) => buf,
-            Err(_) => continue,
-        };
-
-        let eth_packet = match EthernetPacket::new(packet) {
-            Some(packet) => packet,
-            None => continue,
-        };
-
-        // skip if machine pings itself
-        if eth_packet.get_source() == source_mac {
-            continue;
-        }
-
-        // skip if is not an ARP packet
-        if eth_packet.get_ethertype().0 != EtherTypes::Arp.0 {
-            continue;
-        }
-
-        println!("ARP PACKET SOURCE: {}", eth_packet.get_source());
-    });
-
-    thread::spawn(move || loop {
-        for ip in &ips {
-            if let Some(arp_request) = gen_arp_request(source_mac, source_ip, ip.clone()) {
-                tx.send_to(&arp_request, Some(interface.clone()));
-            }
-        }
-
-        thread::sleep(Duration::from_secs(10));
-    });
-
-    Ok(())
-}
-
-fn select_default_interface(interfaces: &[NetworkInterface]) -> Option<NetworkInterface> {
+pub fn select_default_interface(interfaces: &[NetworkInterface]) -> Option<NetworkInterface> {
     interfaces
         .iter()
         .find(|interface| {
@@ -189,7 +85,7 @@ fn select_default_interface(interfaces: &[NetworkInterface]) -> Option<NetworkIn
 /// 255.255.252.0/22 \
 /// 255.255.254.0/23 \
 /// 255.255.255.0/24
-fn compute_subnet_ips(sample_ip: Ipv4Addr, mask: Ipv4Addr) -> Option<Vec<Ipv4Addr>> {
+pub fn compute_subnet_ips(sample_ip: Ipv4Addr, mask: Ipv4Addr) -> Option<Vec<Ipv4Addr>> {
     // first two octects stay constant for all ips
     let network_part = [sample_ip.octets()[0], sample_ip.octets()[1]];
 

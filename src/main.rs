@@ -1,9 +1,11 @@
-use std::{thread, time::Duration};
-
+mod cache;
+mod error;
 mod network;
+mod scanner;
 
 fn main() {
-    network::init_arp_scanner();
-
-    thread::sleep(Duration::from_secs(60 * 60));
+    match scanner::init_arp_scanner() {
+        Err(e) => eprintln!("{}", e),
+        _ => println!("exiting scanner gracefully..."),
+    }
 }
