@@ -7,20 +7,16 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{net::IpAddr, thread};
 
+use log::log;
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket};
 use pnet_datalink::{Channel, DataLinkReceiver, DataLinkSender, MacAddr, NetworkInterface};
 
 use crate::cache::MacCache;
+use crate::config::ScannerOptions;
 use crate::error::{ArpScannerErr, InterfaceErr};
 use crate::network::{compute_subnet_ips, gen_arp_request, select_default_interface};
 
-const MAC_ADDR_TIMEOUT_SECS: u64 = 60 * 5;
-/// How often the mac cache checks for overdue macs
-const MAC_CACHE_CLEAN_PERIOD: Duration = Duration::from_secs(10);
-/// How often the network is scanned
-const ARP_SCAN_PERIOD: Duration = Duration::from_secs(5);
-
-pub fn init_arp_scanner() -> Result<(), ArpScannerErr> {
+pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
     let interfaces = pnet_datalink::interfaces();
 
     let interface = match select_default_interface(&interfaces) {
@@ -53,6 +49,16 @@ pub fn init_arp_scanner() -> Result<(), ArpScannerErr> {
         None => return Err(ArpScannerErr::UnsupportedMask),
     };
 
+    log::log!(
+        log::Level::Info,
+        "Selected interface {}, ip: {}, subnet mask: {}, subnet ip range: {}-{}",
+        interface.name,
+        source_ip,
+        subnet_mask,
+        ips.first().unwrap(),
+        ips.last().unwrap(),
+    );
+
     let (tx, rx) = match pnet_datalink::channel(
         &interface,
         pnet_datalink::Config {
@@ -70,17 +76,26 @@ pub fn init_arp_scanner() -> Result<(), ArpScannerErr> {
 
     let mut handles = Vec::with_capacity(3);
 
-    let cache_clone = Arc::clone(&mac_cache);
-    handles.push(thread::spawn(move || mac_cache_periodic_clean(cache_clone)));
-
-    // ARP packet receiever
+    let cache_clone_1 = Arc::clone(&mac_cache);
+    // Clean ARP cache periodically
     handles.push(thread::spawn(move || {
-        receive_arp_packets(rx, Arc::clone(&mac_cache), source_mac)
+        clean_mac_cache_periodic(cache_clone_1, &options)
     }));
 
-    // ARP request sender
+    let cache_clone_2 = Arc::clone(&mac_cache);
+    // Recieve incoming ARP packets
     handles.push(thread::spawn(move || {
-        send_arp_packets_to_ips(tx, ips, interface, source_mac, source_ip)
+        receive_arp_packets_constant(rx, cache_clone_2, source_mac, &options)
+    }));
+
+    // Send ARP requests periodically
+    handles.push(thread::spawn(move || {
+        send_arp_req_to_ips_periodic(tx, ips, interface, source_mac, source_ip, &options)
+    }));
+
+    let cache_clone_3 = Arc::clone(&mac_cache);
+    handles.push(thread::spawn(move || {
+        log_mac_cache_periodic(cache_clone_3, &options)
     }));
 
     for handle in handles {
@@ -89,31 +104,42 @@ pub fn init_arp_scanner() -> Result<(), ArpScannerErr> {
 
     Ok(())
 }
-fn mac_cache_periodic_clean(mac_cache: Arc<Mutex<MacCache>>) {
+fn clean_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOptions) {
     loop {
-        thread::sleep(MAC_CACHE_CLEAN_PERIOD);
-
         let mut macs_to_remove: Vec<MacAddr> = vec![];
 
         let mut cache = mac_cache.lock().unwrap();
 
         for (mac, instant) in cache.iter() {
-            if instant.elapsed().as_secs() > MAC_ADDR_TIMEOUT_SECS {
+            if instant.elapsed().as_secs() > options.mac_addr_timeout_secs {
                 macs_to_remove.push(mac.clone());
             }
         }
 
         for mac in macs_to_remove {
-            println!("deleting... {}", &mac);
+            log!(log::Level::Trace, "deleting mac: {}", mac);
             cache.delete(&mac);
         }
     }
 }
 
-fn receive_arp_packets(
+fn log_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOptions) {
+    loop {
+        thread::sleep(Duration::from_secs(options.mac_cache_log_period));
+
+        let cache = mac_cache.lock().unwrap();
+
+        if options.log_cache {
+            log!(log::Level::Info, "mac cache size: {}", cache.size());
+        }
+    }
+}
+
+fn receive_arp_packets_constant(
     mut rx: Box<dyn DataLinkReceiver>,
     mac_cache: Arc<Mutex<MacCache>>,
     source_mac: MacAddr,
+    options: &ScannerOptions,
 ) {
     loop {
         let packet = match rx.next() {
@@ -138,19 +164,23 @@ fn receive_arp_packets(
             continue;
         }
 
+        if options.log_packets {
+            log!(log::Level::Trace, "incoming arp packet mac: {}", packet_mac);
+        }
+
         let mut cache = mac_cache.lock().unwrap();
 
-        println!("adding...: {}, {}", &packet_mac, cache.size());
         cache.add(packet_mac);
     }
 }
 
-fn send_arp_packets_to_ips(
+fn send_arp_req_to_ips_periodic(
     mut tx: Box<dyn DataLinkSender>,
     ips: Vec<Ipv4Addr>,
     interface: NetworkInterface,
     source_mac: MacAddr,
     source_ip: Ipv4Addr,
+    options: &ScannerOptions,
 ) {
     loop {
         for ip in &ips {
@@ -159,6 +189,6 @@ fn send_arp_packets_to_ips(
             }
         }
 
-        thread::sleep(ARP_SCAN_PERIOD);
+        thread::sleep(Duration::from_secs(options.arp_scan_period));
     }
 }

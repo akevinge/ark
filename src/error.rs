@@ -18,7 +18,7 @@ impl Display for ArpScannerErr {
                 InterfaceErr::NotFound => "unable to choose default network interface",
             },
         };
-        write!(f, "[scanner error]: {}", message)
+        write!(f, "[arp scanner error]: {}", message)
     }
 }
 

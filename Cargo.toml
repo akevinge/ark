@@ -1,8 +1,13 @@
 [package]
 name = "network-scanner"
+author = "Kevin G. <ge.kevin.a@gmail.com>"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 pnet = "0.31.0"
 pnet_datalink = "0.31.0"
+log = "0.4"
+fern = "0.6"
+chrono = "0.4"
+clap = { version = "4.0.17", features = ["derive"] }
