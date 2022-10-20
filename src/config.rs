@@ -39,13 +39,13 @@ pub struct ScannerOptions {
         help = "Whether to log all incoming ARP packets",
         default_value_t = false
     )]
-    pub log_packets: bool,
+    pub log_all_arp_packets: bool,
 
     #[arg(
-        short = 'c',
+        short = 'd',
         long = "log_cache",
         help = "Whether to log cache deletions",
         default_value_t = false
     )]
-    pub log_cache: bool,
+    pub log_cache_deletions: bool,
 }

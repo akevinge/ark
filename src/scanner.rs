@@ -117,7 +117,9 @@ fn clean_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOp
         }
 
         for mac in macs_to_remove {
-            log!(log::Level::Trace, "deleting mac: {}", mac);
+            if options.log_cache_deletions {
+                log!(log::Level::Trace, "deleting mac: {}", mac);
+            }
             cache.delete(&mac);
         }
     }
@@ -129,9 +131,7 @@ fn log_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOpti
 
         let cache = mac_cache.lock().unwrap();
 
-        if options.log_cache {
-            log!(log::Level::Info, "mac cache size: {}", cache.size());
-        }
+        log!(log::Level::Info, "mac cache size: {}", cache.size());
     }
 }
 
@@ -164,7 +164,7 @@ fn receive_arp_packets_constant(
             continue;
         }
 
-        if options.log_packets {
+        if options.log_all_arp_packets {
             log!(log::Level::Trace, "incoming arp packet mac: {}", packet_mac);
         }
 
