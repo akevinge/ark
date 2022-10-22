@@ -1,4 +1,10 @@
 name: 📚 Docs Report
-about: Create a report to help us improve the docs
 title: '[docs] '
+description: Create a report to help us improve the docs
 labels: ['type: docs']
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time for making a docs report!
