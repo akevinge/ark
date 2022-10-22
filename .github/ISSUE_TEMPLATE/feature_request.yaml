@@ -1,6 +1,7 @@
-name: Feature Request
+name: 💡 Feature Request
+title: '[feat] '
 description: Submit a proposal for a new feature
-labels: ["type: feature request"]
+labels: ['type: feature request', 'status: needs triage']
 body:
   - type: markdown
     attributes:
