@@ -1,4 +1,4 @@
-use std::{env, io, process};
+use std::{env, fs, io, process};
 
 use clap::Parser;
 use log::log;
@@ -32,6 +32,8 @@ fn main() {
 }
 
 pub fn init_logger(is_prod: bool) -> Result<(), fern::InitError> {
+    let _ = fs::remove_file("scanner.log");
+
     let mut dispatch = fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(
