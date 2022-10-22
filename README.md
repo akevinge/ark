@@ -31,7 +31,7 @@ cargo run -p tive-core
 > **Note** 
 > Scanner requires elevated permission to run due to [Layer 2 access](https://en.wikipedia.org/wiki/Data_link_layer)
 
-#### *nix
+**\*nix**
 ```shell
 sudo -E env "PATH=$PATH" cargo run -p tive-scanner
 ```
