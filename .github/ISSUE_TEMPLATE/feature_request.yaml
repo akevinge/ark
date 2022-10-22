@@ -4,7 +4,7 @@ labels: ["type: feature request"]
 body:
   - type: markdown
     attributes:
-      value: "
+      value: |
         Thank you for taking the time to propose a new feature!
         
   - type: textarea
