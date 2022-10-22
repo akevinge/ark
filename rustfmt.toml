@@ -1,0 +1,6 @@
+max_width = 100
+tab_spaces = 4
+merge_derives = true
+newline_style = "Unix"
+edition = "2021"
+use_try_shorthand = false

@@ -67,9 +67,10 @@ pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
     ) {
         Ok(channel) => match channel {
             Channel::Ethernet(tx, rx) => (tx, rx),
-            _ => return Err(ArpScannerErr::OpenChannelError),
+            // this should never happen
+            _ => return Err(ArpScannerErr::OpenChannelError(std::io::ErrorKind::Other)),
         },
-        Err(_) => return Err(ArpScannerErr::OpenChannelError),
+        Err(e) => return Err(ArpScannerErr::OpenChannelError(e.kind())),
     };
 
     let mac_cache = Arc::new(Mutex::new(MacCache::new()));
@@ -112,7 +113,7 @@ fn clean_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOp
 
         for (mac, instant) in cache.iter() {
             if instant.elapsed().as_secs() > options.mac_addr_timeout_secs {
-                macs_to_remove.push(mac.clone());
+                macs_to_remove.push(*mac);
             }
         }
 
@@ -184,7 +185,7 @@ fn send_arp_req_to_ips_periodic(
 ) {
     loop {
         for ip in &ips {
-            if let Some(arp_request) = gen_arp_request(source_mac, source_ip, ip.clone()) {
+            if let Some(arp_request) = gen_arp_request(source_mac, source_ip, *ip) {
                 tx.send_to(&arp_request, Some(interface.clone()));
             }
         }

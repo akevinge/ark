@@ -1,4 +1,4 @@
-use std::process;
+use std::{env, io, process};
 
 use clap::Parser;
 use log::log;
@@ -10,9 +10,14 @@ mod network;
 mod scanner;
 
 fn main() {
+    let is_prod = match env::var("RS_ENV") {
+        Ok(v) => v == "production",
+        Err(_) => false,
+    };
+
     let scanner_options = config::ScannerOptions::parse();
 
-    if let Err(e) = init_logger() {
+    if let Err(e) = init_logger(is_prod) {
         eprintln!("{}", e);
         process::exit(1);
     }
@@ -26,8 +31,8 @@ fn main() {
     }
 }
 
-pub fn init_logger() -> Result<(), fern::InitError> {
-    fern::Dispatch::new()
+pub fn init_logger(is_prod: bool) -> Result<(), fern::InitError> {
+    let mut dispatch = fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(
                 "{}[{}][{}] {}",
@@ -38,8 +43,13 @@ pub fn init_logger() -> Result<(), fern::InitError> {
             ))
         })
         .level(log::LevelFilter::Trace)
-        .chain(fern::log_file("scanner.log")?)
-        .apply()?;
+        .chain(fern::log_file("scanner.log")?);
+
+    if !is_prod {
+        dispatch = dispatch.chain(io::stdout());
+    }
+
+    dispatch.apply()?;
 
     Ok(())
 }
