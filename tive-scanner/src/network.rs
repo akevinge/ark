@@ -22,7 +22,7 @@ const ETHERNET_HW_ADDR_LEN: u8 = 6;
 const IPV4_ADDR_LEN: u8 = 4;
 const ETHERNET_FRAME_SIZE: usize = 42; // ARP_PACKET_SIZE + 14 for the ethernet header
 
-/// Generates ARP message wrapped in an Ethernet frame
+// Generates ARP message wrapped in an Ethernet frame
 pub fn gen_arp_request(
     source_mac: MacAddr,
     source_ip: Ipv4Addr,
@@ -67,8 +67,18 @@ pub fn select_default_interface(interfaces: &[NetworkInterface]) -> Option<Netwo
                 && !interface.is_loopback()
                 && !interface.ips.is_empty()
                 && interface.ips.iter().any(|ip| ip.is_ipv4())
+                && interface.mac != None
         })
         .cloned()
+}
+
+pub fn is_interface_connected(interface: &NetworkInterface) -> bool {
+    let interfaces = pnet_datalink::interfaces();
+
+    match interfaces.iter().find(|iface| iface.name == interface.name) {
+        Some(iface) => iface.is_running(),
+        None => false,
+    }
 }
 
 // Returns all IPs that fall within the same subnet as sample_ip

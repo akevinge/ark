@@ -3,6 +3,7 @@
 // - https://www.sciencedirect.com/topics/computer-science/address-resolution-protocol-request#:~:text=ARP%20Packets,same%20way%20as%20IP%20packets
 
 use std::net::Ipv4Addr;
+use std::process;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{net::IpAddr, thread};
@@ -14,7 +15,9 @@ use pnet_datalink::{Channel, DataLinkReceiver, DataLinkSender, MacAddr, NetworkI
 use crate::cache::MacCache;
 use crate::config::ScannerOptions;
 use crate::error::{ArpScannerErr, InterfaceErr};
-use crate::network::{compute_subnet_ips, gen_arp_request, select_default_interface};
+use crate::network::{
+    compute_subnet_ips, gen_arp_request, is_interface_connected, select_default_interface,
+};
 
 pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
     let interfaces = pnet_datalink::interfaces();
@@ -74,36 +77,19 @@ pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
 
     let mac_cache = Arc::new(Mutex::new(MacCache::new()));
 
-    let mut handles = Vec::with_capacity(3);
-
-    let cache_clone_1 = Arc::clone(&mac_cache);
-    // Clean ARP cache periodically
-    handles.push(thread::spawn(move || {
-        clean_mac_cache_periodic(cache_clone_1, &options)
-    }));
-
-    let cache_clone_2 = Arc::clone(&mac_cache);
-    // Recieve incoming ARP packets
-    handles.push(thread::spawn(move || {
-        receive_arp_packets_constant(rx, cache_clone_2, source_mac, &options)
-    }));
-
-    // Send ARP requests periodically
-    handles.push(thread::spawn(move || {
-        send_arp_req_to_ips_periodic(tx, ips, interface, source_mac, source_ip, &options)
-    }));
-
-    let cache_clone_3 = Arc::clone(&mac_cache);
-    handles.push(thread::spawn(move || {
-        log_mac_cache_periodic(cache_clone_3, &options)
-    }));
-
-    for handle in handles {
-        handle.join().unwrap();
-    }
+    thread::scope(|s| {
+        s.spawn(|| clean_mac_cache_periodic(Arc::clone(&mac_cache), &options));
+        s.spawn(|| receive_arp_packets_constant(rx, Arc::clone(&mac_cache), &source_mac, &options));
+        s.spawn(|| {
+            send_arp_req_to_ips_periodic(tx, ips, &interface, &source_mac, &source_ip, &options)
+        });
+        s.spawn(|| log_mac_cache_periodic(Arc::clone(&mac_cache), &options));
+        s.spawn(|| check_interface_connectivity(&interface));
+    });
 
     Ok(())
 }
+
 fn clean_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOptions) {
     loop {
         thread::sleep(Duration::from_secs(5));
@@ -141,7 +127,7 @@ fn log_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOpti
 fn receive_arp_packets_constant(
     mut rx: Box<dyn DataLinkReceiver>,
     mac_cache: Arc<Mutex<MacCache>>,
-    source_mac: MacAddr,
+    source_mac: &MacAddr,
     options: &ScannerOptions,
 ) {
     loop {
@@ -158,7 +144,7 @@ fn receive_arp_packets_constant(
         let packet_mac = eth_packet.get_source();
 
         // skip if machine pings itself
-        if packet_mac == source_mac {
+        if packet_mac == *source_mac {
             continue;
         }
 
@@ -180,18 +166,28 @@ fn receive_arp_packets_constant(
 fn send_arp_req_to_ips_periodic(
     mut tx: Box<dyn DataLinkSender>,
     ips: Vec<Ipv4Addr>,
-    interface: NetworkInterface,
-    source_mac: MacAddr,
-    source_ip: Ipv4Addr,
+    interface: &NetworkInterface,
+    source_mac: &MacAddr,
+    source_ip: &Ipv4Addr,
     options: &ScannerOptions,
 ) {
     loop {
         for ip in &ips {
-            if let Some(arp_request) = gen_arp_request(source_mac, source_ip, *ip) {
+            if let Some(arp_request) = gen_arp_request(*source_mac, *source_ip, *ip) {
                 tx.send_to(&arp_request, Some(interface.clone()));
             }
         }
 
         thread::sleep(Duration::from_secs(options.arp_scan_period));
+    }
+}
+
+fn check_interface_connectivity(interface: &NetworkInterface) {
+    loop {
+        thread::sleep(Duration::from_secs(5));
+        if !is_interface_connected(interface) {
+            log!(log::Level::Error, "{:?} no longer connected", interface);
+            process::exit(231);
+        }
     }
 }
