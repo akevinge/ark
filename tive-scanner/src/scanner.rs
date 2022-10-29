@@ -44,10 +44,9 @@ pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
         _ => return Err(ArpScannerErr::InterfaceError(InterfaceErr::InvalidMask)),
     };
 
-    let ips = match compute_subnet_ips(source_ip, subnet_mask) {
-        Some(ips) => ips,
-        None => return Err(ArpScannerErr::UnsupportedMask),
-    };
+    compute_subnet_ips(source_ip, subnet_mask);
+
+    let ips = compute_subnet_ips(source_ip, subnet_mask);
 
     log::log!(
         log::Level::Info,
@@ -107,10 +106,13 @@ pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
 }
 fn clean_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOptions) {
     loop {
+        thread::sleep(Duration::from_secs(5));
+
         let mut macs_to_remove: Vec<MacAddr> = vec![];
 
         let mut cache = mac_cache.lock().unwrap();
 
+        log!(log::Level::Trace, "running cache janitor...");
         for (mac, instant) in cache.iter() {
             if instant.elapsed().as_secs() > options.mac_addr_timeout_secs {
                 macs_to_remove.push(*mac);

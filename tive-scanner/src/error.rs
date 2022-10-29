@@ -3,7 +3,6 @@ use std::{fmt::Display, io::ErrorKind};
 pub enum ArpScannerErr {
     OpenChannelError(ErrorKind),
     InterfaceError(InterfaceErr),
-    UnsupportedMask,
 }
 
 impl Display for ArpScannerErr {
@@ -13,7 +12,6 @@ impl Display for ArpScannerErr {
                 "{}: {:?}",
                 "unable to open channel for network interface", &reason
             ),
-            ArpScannerErr::UnsupportedMask => String::from("network has unsupported subnet mask"),
             ArpScannerErr::InterfaceError(interface_err) => match interface_err {
                 InterfaceErr::InvalidMask => {
                     String::from("chosen network interface is missing ipv4 subnet mask")
