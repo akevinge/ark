@@ -1,5 +1,5 @@
 [workspace]
-members = ["tive-scanner", "tive-core"]
+members = ["ark-scanner"]
 
 [profile.release]
 strip = "symbols"
