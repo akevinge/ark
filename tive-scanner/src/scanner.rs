@@ -79,7 +79,7 @@ pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
 
     thread::scope(|s| {
         s.spawn(|| clean_mac_cache_periodic(Arc::clone(&mac_cache), &options));
-        s.spawn(|| receive_arp_packets_constant(rx, Arc::clone(&mac_cache), &source_mac, &options));
+        s.spawn(|| receive_arp_packets_constant(rx, Arc::clone(&mac_cache), &source_mac));
         s.spawn(|| {
             send_arp_req_to_ips_periodic(tx, ips, &interface, &source_mac, &source_ip, &options)
         });
@@ -100,15 +100,13 @@ fn clean_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOp
 
         log!(log::Level::Trace, "running cache janitor...");
         for (mac, instant) in cache.iter() {
-            if instant.elapsed().as_secs() > options.mac_addr_timeout_secs {
+            if instant.elapsed().as_secs() > options.mac_addr_timeout {
                 macs_to_remove.push(*mac);
             }
         }
 
         for mac in macs_to_remove {
-            if options.log_cache_deletions {
-                log!(log::Level::Trace, "deleting mac: {}", mac);
-            }
+            log!(log::Level::Trace, "deleting mac: {}", mac);
             cache.delete(&mac);
         }
     }
@@ -128,7 +126,6 @@ fn receive_arp_packets_constant(
     mut rx: Box<dyn DataLinkReceiver>,
     mac_cache: Arc<Mutex<MacCache>>,
     source_mac: &MacAddr,
-    options: &ScannerOptions,
 ) {
     loop {
         let packet = match rx.next() {
@@ -153,9 +150,7 @@ fn receive_arp_packets_constant(
             continue;
         }
 
-        if options.log_all_arp_packets {
-            log!(log::Level::Trace, "incoming arp packet mac: {}", packet_mac);
-        }
+        log!(log::Level::Trace, "incoming arp packet mac: {}", packet_mac);
 
         let mut cache = mac_cache.lock().unwrap();
 
