@@ -1,6 +1,6 @@
 use std::{env, fs, io};
 
-use config::{load_scanner_opts, ScannerOptions};
+use config::load_scanner_opts;
 use log::log;
 
 mod cache;
@@ -19,7 +19,7 @@ fn main() {
         }
     };
     if let Err(e) = dotenvy::from_path(path) {
-        panic!("unable to load {}, {}", path, e.to_string())
+        panic!("unable to load {}, {}", path, e)
     }
 
     let scanner_options = load_scanner_opts();

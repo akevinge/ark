@@ -17,9 +17,9 @@ where
     T::Err: Debug,
 {
     dotenvy::var(key)
-        .expect(format!("unable to load {}", key).as_str())
+        .unwrap_or_else(|_| panic!("unable to load {}", key))
         .parse()
-        .expect(format!("unable to parse {}", key).as_str())
+        .unwrap_or_else(|_| panic!("unable to parse {}", key))
 }
 
 pub fn load_scanner_opts() -> ScannerOptions {
