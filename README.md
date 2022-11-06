@@ -10,19 +10,10 @@ A busyness analyzer 🔧
 ### Lang and tools
 
 - [Rust lang and toolchain](https://www.rust-lang.org/tools/install)
-- [Docker](https://www.docker.com)
 
 ### Initializing all packages
 
-Execute the following commands in the project root directory
-
-1. Starting PostreSQL
-
-```shell
-docker compose -f docker-compose.dev.yaml up -d
-```
-
-4.  Running the scanner
+1.  Running the scanner
     > **Note**
     > Scanner does not work on Windows due to liminations of pnet_datalink dependency
 
