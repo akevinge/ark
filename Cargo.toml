@@ -1,5 +1,0 @@
-[workspace]
-members = ["ark-scanner"]
-
-[profile.release]
-strip = "symbols"
