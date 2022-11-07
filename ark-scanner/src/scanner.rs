@@ -3,7 +3,7 @@
 // - https://www.sciencedirect.com/topics/computer-science/address-resolution-protocol-request#:~:text=ARP%20Packets,same%20way%20as%20IP%20packets
 
 use std::net::Ipv4Addr;
-use std::process;
+use std::process::{self, Command};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{net::IpAddr, thread};
@@ -84,7 +84,7 @@ pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
             send_arp_req_to_ips_periodic(tx, ips, &interface, &source_mac, &source_ip, &options)
         });
         s.spawn(|| log_mac_cache_periodic(Arc::clone(&mac_cache), &options));
-        s.spawn(|| check_interface_connectivity(&interface));
+        s.spawn(|| check_interface_connectivity(&interface, &options));
     });
 
     Ok(())
@@ -177,12 +177,24 @@ fn send_arp_req_to_ips_periodic(
     }
 }
 
-fn check_interface_connectivity(interface: &NetworkInterface) {
+fn check_interface_connectivity(interface: &NetworkInterface, options: &ScannerOptions) {
+    let ar: &Vec<&str> = &options.reconnect_cmd.split(" ").collect();
+
     loop {
-        thread::sleep(Duration::from_secs(5));
+        thread::sleep(Duration::from_millis(100));
         if !is_interface_connected(interface) {
             log!(log::Level::Error, "{:?} no longer connected", interface);
-            process::exit(231);
+
+            let mut cmd = Command::new(ar.get(0).expect("Invalid reconnect command"));
+
+            if ar.len() > 1 {
+                cmd.args(&ar[1..ar.len()]);
+            }
+
+            match cmd.status() {
+                Ok(s) => log!(log::Level::Info, "Reconnect status: {}", s.to_string()),
+                Err(e) => log!(log::Level::Error, "{}", e.to_string()),
+            }
         }
     }
 }
