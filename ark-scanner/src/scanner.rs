@@ -54,12 +54,16 @@ pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
 
     log::log!(
         log::Level::Info,
-        "Selected interface {}, ip: {}, subnet mask: {}, subnet ip range: {}-{}",
+        "Selected interface {}, ip: {}, subnet mask: {}, subnet ip range: {}-{}, logging to {}",
         interface.name,
         source_ip,
         subnet_mask,
         ips.first().unwrap(),
         ips.last().unwrap(),
+        options
+            .log_api_url
+            .clone()
+            .unwrap_or_else(|| String::from("local environment"))
     );
 
     let (tx, rx) = match pnet_datalink::channel(
