@@ -1,4 +1,4 @@
-use std::{fmt::Debug, process::Command, str::FromStr};
+use std::{fmt::Debug, str::FromStr};
 
 pub struct ScannerOptions {
     /// Time until mac address is considered expired, in seconds
