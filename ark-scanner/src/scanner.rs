@@ -209,14 +209,14 @@ fn send_arp_req_to_ips_periodic(
 }
 
 fn check_interface_connectivity(interface: &NetworkInterface, options: &ScannerOptions) {
-    let ar: &Vec<&str> = &options.reconnect_cmd.split(" ").collect();
+    let ar: &Vec<&str> = &options.reconnect_cmd.split(' ').collect();
 
     loop {
         thread::sleep(Duration::from_millis(100));
         if !is_interface_connected(interface) {
             log!(log::Level::Error, "{:?} no longer connected", interface);
 
-            let mut cmd = Command::new(ar.get(0).expect("Invalid reconnect command"));
+            let mut cmd = Command::new(ar.first().expect("Invalid reconnect command"));
 
             if ar.len() > 1 {
                 cmd.args(&ar[1..ar.len()]);
