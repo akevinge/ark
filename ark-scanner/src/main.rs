@@ -3,6 +3,7 @@ use std::{env, fs, io};
 use config::load_scanner_opts;
 use log::log;
 
+mod api;
 mod cache;
 mod config;
 mod error;

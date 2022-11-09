@@ -1,5 +1,5 @@
 /target
 
-.scanner.prod.env
+*.env
 
 *.log
