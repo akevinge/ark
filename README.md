@@ -10,18 +10,48 @@ A busyness analyzer 🔧
 ### Lang and tools
 
 - [Rust lang and toolchain](https://www.rust-lang.org/tools/install)
+- [Golang](https://go.dev/dl)
 
 ### Initializing all packages
 
-1.  Running the scanner
-    > **Note**
-    > Scanner does not work on Windows due to liminations of pnet_datalink dependency
+#### Logger
 
-> **Note**
-> Scanner requires elevated permission to run due to [Layer 2 access](https://en.wikipedia.org/wiki/Data_link_layer)
+Deploys to AWS Lambda and requires DynamoDB
+
+Documentation in the future probably :)
+
+#### Scanner
+
+1. Copy .env.example to .env
+
+It should look like this
+
+```
+MAC_ADDR_TIMEOUT_SECS=300
+ARP_SCAN_PERIOD_SECS=1
+MAC_CACHE_LOG_PERIOD_SECS=5
+TRACE=true
+RECONNECT_CMD="nmcli connection up SSID"
+SCANNER_LOCATION=dev-location
+```
+
+Optionally, you can add LOG_API_URL=https://url.com if you have an API server that accepts the following:
+
+```shell
+curl -X POST 'https://url.com' -H 'Content-Type: application/json' -d '{ "location": "location", "device_count": 100 }'
+```
+
+2. Running the scanner
+
+   > **Note**
+   > Scanner does not work on Windows due to liminations of pnet_datalink dependency
+
+   > **Note**
+   > Scanner requires elevated permission to run due to [Layer 2 access](https://en.wikipedia.org/wiki/Data_link_layer)
 
 **\*nix**
 
 ```shell
-sudo -E env "PATH=$PATH" cargo run -p tive-scanner
+cd ark-scanner
+sudo -E env "PATH=$PATH" cargo run -- ./.env
 ```
