@@ -12,6 +12,7 @@ use log::log;
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket};
 use pnet_datalink::{Channel, DataLinkReceiver, DataLinkSender, MacAddr, NetworkInterface};
 
+use crate::api;
 use crate::cache::MacCache;
 use crate::config::ScannerOptions;
 use crate::error::{ArpScannerErr, InterfaceErr};
@@ -113,12 +114,38 @@ fn clean_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOp
 }
 
 fn log_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOptions) {
+    // Let ARP cache size stabilize before making API request
+    if options.log_api_url.is_some() {
+        thread::sleep(Duration::from_secs(30));
+    }
+
     loop {
         thread::sleep(Duration::from_secs(options.mac_cache_log_period));
 
         let cache = mac_cache.lock().unwrap();
 
-        log!(log::Level::Info, "mac cache size: {}", cache.size());
+        let cache_size = cache.size();
+
+        match &options.log_api_url {
+            Some(url) => match api::log_cache(url, options.location.clone(), cache_size as u64) {
+                Ok(_) => {
+                    log!(
+                        log::Level::Info,
+                        "successfully logged cache size to api: {}",
+                        cache_size
+                    )
+                }
+                Err(e) => {
+                    log!(
+                        log::Level::Error,
+                        "failed attempted to log to: {}, error: {}",
+                        &url,
+                        e
+                    )
+                }
+            },
+            None => log!(log::Level::Info, "mac cache size: {}", cache_size),
+        }
     }
 }
 
