@@ -15,12 +15,12 @@ import (
 
 type LoggerRequest struct {
 	Location    *string `json:"location"`
-	DeviceCount *int `json:"device_count"`
+	DeviceCount *int    `json:"device_count"`
 }
 
 type LoggerInfo struct {
-	CreatedAt int64
-	Location string
+	CreatedAt   int64
+	Location    string
 	DeviceCount int `dynamo:"DeviceCount"`
 }
 
@@ -35,34 +35,33 @@ func Handler(ctx context.Context, request events.LambdaFunctionURLRequest) (even
 	//log.Println(request.Body)
 	if request.RequestContext.HTTP.Method == http.MethodGet {
 		return events.LambdaFunctionURLResponse{Body: "Function is online", StatusCode: 200}, nil
-	} else if request.RequestContext.HTTP.Method == http.MethodPost{
+	} else if request.RequestContext.HTTP.Method == http.MethodPost {
 
-	var req LoggerRequest
-	err := json.Unmarshal([]byte(request.Body), &req)
-	
-	if err != nil || req.DeviceCount == nil || req.Location == nil {
-		return events.LambdaFunctionURLResponse{Body: "bad input", StatusCode: http.StatusBadRequest}, err
-	}
-	// Create dynamo struct and pass in information
-	loggerEntry := LoggerInfo{
-		CreatedAt: time.Now().Unix(),
-		Location: *req.Location,
-		DeviceCount: *req.DeviceCount,
-	}
+		var req LoggerRequest
+		err := json.Unmarshal([]byte(request.Body), &req)
 
-	err = PutData(db, loggerEntry)
+		if err != nil || req.DeviceCount == nil || req.Location == nil {
+			return events.LambdaFunctionURLResponse{Body: "bad input", StatusCode: http.StatusBadRequest}, err
+		}
+		// Create dynamo struct and pass in information
+		loggerEntry := LoggerInfo{
+			CreatedAt:   time.Now().Unix(),
+			Location:    *req.Location,
+			DeviceCount: *req.DeviceCount,
+		}
 
-	if err != nil {
-		return events.LambdaFunctionURLResponse{Body: "Not Put data in url", StatusCode: http.StatusBadRequest}, nil
-	}
+		err = PutData(db, loggerEntry)
+
+		if err != nil {
+			return events.LambdaFunctionURLResponse{Body: "Not Put data in url", StatusCode: http.StatusBadRequest}, nil
+		}
 		return events.LambdaFunctionURLResponse{Body: "Success!", StatusCode: http.StatusOK}, nil
 	}
 
-	
 	return events.LambdaFunctionURLResponse{Body: request.Body, StatusCode: http.StatusMethodNotAllowed}, nil
 }
 
-func PutData(table dynamo.Table, data LoggerInfo) (error) {
+func PutData(table dynamo.Table, data LoggerInfo) error {
 	err := table.Put(data).Run()
 	return err
 }
@@ -72,7 +71,6 @@ func main() {
 	tableName := "Logs"
 	config := &aws.Config{Region: aws.String("us-east-1")}
 	db = dynamo.New(sess, config).Table(tableName)
-	//db = dynamodb.New(sess)
 
 	lambda.Start(Handler)
 }
