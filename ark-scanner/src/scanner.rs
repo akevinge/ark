@@ -11,12 +11,13 @@ use log::log;
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket};
 use pnet_datalink::{Channel, DataLinkReceiver, DataLinkSender, MacAddr, NetworkInterface};
 
-use crate::api;
 use crate::cache::MacCache;
+use crate::cache_logger::{CacheLogger, Logger};
 use crate::config::ScannerOptions;
 use crate::error::{ArpScannerErr, InterfaceErr};
 use crate::network::{
     compute_subnet_ips, gen_arp_request, is_interface_connected, select_default_interface,
+    NetworkCommandLimiter,
 };
 
 pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
@@ -47,8 +48,6 @@ pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
         _ => return Err(ArpScannerErr::InterfaceError(InterfaceErr::InvalidMask)),
     };
 
-    compute_subnet_ips(source_ip, subnet_mask);
-
     let ips = compute_subnet_ips(source_ip, subnet_mask);
 
     log::log!(
@@ -64,6 +63,9 @@ pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
             .clone()
             .unwrap_or_else(|| String::from("local environment"))
     );
+
+    // Limit the
+    let reconnect_limiter = NetworkCommandLimiter::new(&options.reconnect_cmd);
 
     let (tx, rx) = match pnet_datalink::channel(
         &interface,
@@ -87,8 +89,8 @@ pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
         s.spawn(|| {
             send_arp_req_to_ips_periodic(tx, ips, &interface, &source_mac, &source_ip, &options)
         });
-        s.spawn(|| log_mac_cache_periodic(Arc::clone(&mac_cache), &options));
-        s.spawn(|| check_interface_connectivity(&interface, &options));
+        s.spawn(|| log_mac_cache_periodic(Arc::clone(&mac_cache), &options, &reconnect_limiter));
+        s.spawn(|| check_interface_connectivity(&interface, &reconnect_limiter));
     });
 
     Ok(())
@@ -116,39 +118,24 @@ fn clean_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOp
     }
 }
 
-fn log_mac_cache_periodic(mac_cache: Arc<Mutex<MacCache>>, options: &ScannerOptions) {
-    // Let ARP cache size stabilize before making API request
-    if options.log_api_url.is_some() {
-        thread::sleep(Duration::from_secs(30));
-    }
+fn log_mac_cache_periodic(
+    mac_cache: Arc<Mutex<MacCache>>,
+    options: &ScannerOptions,
+    reconnect_limiter: &NetworkCommandLimiter,
+) {
+    let mut logger = CacheLogger::new(
+        options.log_api_url.clone(),
+        options.api_retry_limit.clone(),
+        || reconnect_limiter.run(),
+    );
 
     loop {
         thread::sleep(Duration::from_secs(options.mac_cache_log_period));
 
         let cache = mac_cache.lock().unwrap();
-
         let cache_size = cache.size();
 
-        match &options.log_api_url {
-            Some(url) => match api::log_cache(url, options.location.clone(), cache_size as u64) {
-                Ok(_) => {
-                    log!(
-                        log::Level::Info,
-                        "successfully logged cache size to api: {}",
-                        cache_size
-                    )
-                }
-                Err(e) => {
-                    log!(
-                        log::Level::Error,
-                        "failed attempted to log to: {}, error: {}",
-                        &url,
-                        e
-                    )
-                }
-            },
-            None => log!(log::Level::Info, "mac cache size: {}", cache_size),
-        }
+        logger.log(options.location.clone(), cache_size as u64);
     }
 }
 
@@ -207,16 +194,14 @@ fn send_arp_req_to_ips_periodic(
     }
 }
 
-fn check_interface_connectivity(interface: &NetworkInterface, options: &ScannerOptions) {
+fn check_interface_connectivity(
+    interface: &NetworkInterface,
+    reconnect_limiter: &NetworkCommandLimiter,
+) {
     loop {
         thread::sleep(Duration::from_millis(100));
         if !is_interface_connected(interface) {
-            log!(log::Level::Error, "{:?} no longer connected", interface);
-
-            match options.reconnect_cmd.run() {
-                Ok(s) => log!(log::Level::Info, "Reconnect status: {}", s.to_string()),
-                Err(e) => log!(log::Level::Error, "{}", e.to_string()),
-            }
+            reconnect_limiter.run();
         }
     }
 }

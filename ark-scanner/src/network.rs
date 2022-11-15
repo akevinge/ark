@@ -2,8 +2,13 @@
 // - http://www.cs.newpaltz.edu/~easwaran/CCN/Week13/ARP.pdf
 // - https://www.sciencedirect.com/topics/computer-science/address-resolution-protocol-request#:~:text=ARP%20Packets,same%20way%20as%20IP%20packets
 
-use std::net::Ipv4Addr;
+use std::{
+    net::Ipv4Addr,
+    process::Command,
+    sync::{Arc, Mutex, RwLock},
+};
 
+use log::log;
 use pnet::{
     packet::{
         arp::{
@@ -114,4 +119,66 @@ pub fn compute_subnet_ips(sample_up: Ipv4Addr, subnet_mask: Ipv4Addr) -> Vec<Ipv
     }
 
     out
+}
+
+pub struct NetworkCommandLimiter {
+    cmd: NetworkCommand,
+    is_running: Arc<RwLock<bool>>,
+}
+
+impl NetworkCommandLimiter {
+    pub fn new(cmd: &String) -> Self {
+        Self {
+            cmd: NetworkCommand::new(cmd),
+            is_running: Arc::new(RwLock::new(false)),
+        }
+    }
+
+    pub fn run(&self) {
+        let running_rd = self.is_running.read().unwrap();
+
+        if !*running_rd {
+            drop(running_rd); // drop so write lock can be obtained
+
+            let mut running_w = self.is_running.write().unwrap();
+            *running_w = true;
+            drop(running_w); // drop so other threads can access read lock
+
+            self.cmd.run();
+
+            let mut running_w = self.is_running.write().unwrap();
+            *running_w = false;
+        }
+    }
+}
+
+// A reusable command runner
+// Generates new command on each run
+pub struct NetworkCommand {
+    cmd: String,
+    args: Vec<String>,
+}
+
+impl NetworkCommand {
+    pub fn new(cmd: &String) -> Self {
+        let ar: Vec<&str> = cmd.split(' ').collect();
+
+        if ar.is_empty() {
+            panic!("invalid command: {}", cmd);
+        }
+
+        let ar_str: Vec<String> = ar.into_iter().map(String::from).collect();
+
+        Self {
+            cmd: String::from(&ar_str[0]),
+            args: ar_str[1..ar_str.len()].to_vec(),
+        }
+    }
+
+    pub fn run(&self) {
+        match Command::new(&self.cmd).args(&self.args).status() {
+            Ok(s) => log!(log::Level::Info, "Reconnect status: {}", s.to_string()),
+            Err(e) => log!(log::Level::Error, "{}", e.to_string()),
+        }
+    }
 }
