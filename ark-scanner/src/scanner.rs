@@ -64,7 +64,7 @@ pub fn init_arp_scanner(options: ScannerOptions) -> Result<(), ArpScannerErr> {
             .unwrap_or_else(|| String::from("local environment"))
     );
 
-    // Limit the
+    // Disallows concurrent running of command
     let reconnect_limiter = NetworkCommandLimiter::new(&options.reconnect_cmd);
 
     let (tx, rx) = match pnet_datalink::channel(

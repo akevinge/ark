@@ -121,6 +121,7 @@ pub fn compute_subnet_ips(sample_up: Ipv4Addr, subnet_mask: Ipv4Addr) -> Vec<Ipv
     out
 }
 
+// Disallows parallel running of command
 pub struct NetworkCommandLimiter {
     cmd: NetworkCommand,
     is_running: Arc<RwLock<bool>>,
