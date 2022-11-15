@@ -5,7 +5,7 @@
 use std::{
     net::Ipv4Addr,
     process::Command,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, RwLock},
 };
 
 use log::log;
