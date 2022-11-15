@@ -14,6 +14,9 @@ pub struct ScannerOptions {
     /// URL to send log request to
     /// Optional in .env file
     pub log_api_url: Option<String>,
+    /// Max number of retries on API failure
+    /// Optional in env file
+    pub api_retry_limit: Option<u64>,
     /// Scanner location
     /// Optional in .env file, defaults to 'dev-location'
     pub location: String,
@@ -40,6 +43,7 @@ where
     }
 }
 
+// Reuseable wrapper around Command
 pub fn load_scanner_opts() -> ScannerOptions {
     ScannerOptions {
         mac_addr_timeout: load_env_var("MAC_ADDR_TIMEOUT_SECS"),
@@ -48,6 +52,7 @@ pub fn load_scanner_opts() -> ScannerOptions {
         trace: load_env_var("TRACE"),
         reconnect_cmd: load_env_var("RECONNECT_CMD"),
         log_api_url: load_env_var_optional("LOG_API_URL"),
+        api_retry_limit: load_env_var_optional("API_RETRY_LIMIT"),
         location: load_env_var_optional("SCANNER_LOCATION")
             .unwrap_or_else(|| String::from("dev-location")),
     }
