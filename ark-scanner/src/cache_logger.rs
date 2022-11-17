@@ -1,3 +1,5 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use log::log;
 use serde::Serialize;
 
@@ -52,6 +54,7 @@ impl<'a> APILogger<'a> {
 struct LogBody {
     location: String,
     device_count: u64,
+    created_at: u64,
 }
 
 impl<'a> Logger for APILogger<'a> {
@@ -64,6 +67,10 @@ impl<'a> Logger for APILogger<'a> {
                 .json(&LogBody {
                     location: location.clone(),
                     device_count,
+                    created_at: match SystemTime::now().duration_since(UNIX_EPOCH) {
+                        Ok(t) => t.as_secs(),
+                        Err(_) => panic!("System time is before UNIX_EPOCH"),
+                    },
                 })
                 .send()
             {

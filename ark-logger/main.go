@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -14,11 +13,14 @@ import (
 )
 
 type LoggerRequest struct {
+	// Unix epoch time
+	CreatedAt   *int64  `json:"created_at"`
 	Location    *string `json:"location"`
 	DeviceCount *int    `json:"device_count"`
 }
 
 type LoggerInfo struct {
+	// Unix epoch time
 	CreatedAt   int64
 	Location    string
 	DeviceCount int `dynamo:"DeviceCount"`
@@ -40,12 +42,12 @@ func Handler(ctx context.Context, request events.LambdaFunctionURLRequest) (even
 		var req LoggerRequest
 		err := json.Unmarshal([]byte(request.Body), &req)
 
-		if err != nil || req.DeviceCount == nil || req.Location == nil {
+		if err != nil || req.DeviceCount == nil || req.Location == nil || req.CreatedAt == nil {
 			return events.LambdaFunctionURLResponse{Body: "bad input", StatusCode: http.StatusBadRequest}, err
 		}
 		// Create dynamo struct and pass in information
 		loggerEntry := LoggerInfo{
-			CreatedAt:   time.Now().Unix(),
+			CreatedAt:   *req.CreatedAt,
 			Location:    *req.Location,
 			DeviceCount: *req.DeviceCount,
 		}
