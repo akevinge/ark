@@ -61,16 +61,18 @@ impl<'a> Logger for APILogger<'a> {
     fn log(&mut self, location: String, device_count: u64) {
         let mut failure_count = 0;
 
+        let epoch_time = match SystemTime::now().duration_since(UNIX_EPOCH) {
+            Ok(t) => t.as_secs(),
+            Err(_) => panic!("System time is before UNIX_EPOCH"),
+        };
+
         while failure_count < self.max_retries {
             let res = match reqwest::blocking::Client::new()
                 .post(&self.url)
                 .json(&LogBody {
                     location: location.clone(),
                     device_count,
-                    created_at: match SystemTime::now().duration_since(UNIX_EPOCH) {
-                        Ok(t) => t.as_secs(),
-                        Err(_) => panic!("System time is before UNIX_EPOCH"),
-                    },
+                    created_at: epoch_time,
                 })
                 .send()
             {
