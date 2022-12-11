@@ -1,0 +1,17 @@
+[package]
+name = "ark_getter"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+lambda_http = { git = "https://github.com/awslabs/aws-lambda-rust-runtime", rev ="8d7c0eb" }
+serde_json = "1.0.86"
+aws-sdk-dynamodb = "0.21.0"
+aws-config = "0.51.0"
+aws-smithy-client = "0.51.0"
+
+[dev-dependencies]
+testing = { version = "0.1.0", path = "../testing" }

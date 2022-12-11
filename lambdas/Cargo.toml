@@ -1,0 +1,2 @@
+[workspace]
+members = ["ark_getter", "ark_logger", "testing"]

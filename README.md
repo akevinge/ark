@@ -10,7 +10,7 @@ A busyness analyzer 🔧
 ### Lang and tools
 
 - [Rust lang and toolchain](https://www.rust-lang.org/tools/install)
-- [Golang](https://go.dev/dl)
+- [Rust AWS Lambda build tool](https://www.cargo-lambda.info/guide/installation.html)
 
 ### Initializing all packages
 
@@ -35,7 +35,7 @@ RECONNECT_CMD="nmcli connection up SSID"
 SCANNER_LOCATION=dev-location
 ```
 
-Optionally, you can add LOG_API_URL=https://url.com and API_RETRY_LIMIT=3 if you have an API server that accepts the following:
+Optionally, you can add LOG_API_URL=https://example.com and API_RETRY_LIMIT=3 if you have an API server that accepts the following:
 
 ```shell
 curl -X POST 'https://example.com' -H 'Content-Type: application/json' -d '{ "location": "location", "device_count": 100 }'
