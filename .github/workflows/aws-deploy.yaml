@@ -5,14 +5,14 @@ on:
   pull_request:
     types: [opened, reopened]
     branches:
-      - 'main'
+      - "main"
     paths:
-      - 'lambdas/**'
+      - "lambdas/**"
   push:
     branches:
-      - 'main'
+      - "main"
     paths:
-      - 'lambdas/**'
+      - "lambdas/**"
 
 jobs:
   cargo-fmt:
@@ -68,7 +68,7 @@ jobs:
           profile: minimal
 
       - name: Install Zig
-        run: sudo snap install zig --classic --beta 
+        run: sudo snap install zig --classic --beta
 
       - name: Install cargo-lambda
         run: curl -L "https://github.com/cargo-lambda/cargo-lambda/releases/download/v0.13.0/cargo-lambda-v0.13.0.x86_64-unknown-linux-musl.tar.gz" | tar xvz
@@ -87,4 +87,4 @@ jobs:
 
       - name: Deploy CFN
         working-directory: ./lambdas
-        run: sam deploy --config-file samconfig.prod.toml
+        run: sam deploy --stack-name prod_ArkStack --s3-bucket ${{ secrets.AWS_CFN_PRODUCTION_BUCKET }} --s3-prefix prod_ArkStack/cfn --capabilities CAPABILITY_NAMED_IAM --parameter-overrides ParamEnvironment=prod
