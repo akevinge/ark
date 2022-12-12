@@ -26,7 +26,7 @@ jobs:
           toolchain: stable
           profile: minimal
           components: rustfmt
-      - runs: |
+      - run: |
           cd lambdas
           cargo fmt --all --check
 
@@ -40,7 +40,7 @@ jobs:
           toolchain: stable
           profile: minimal
           components: clippy
-      - runs: |
+      - run: |
           cd lambdas
           cargo clippy --all-targets -- -D warnings
 
@@ -53,6 +53,6 @@ jobs:
         with:
           toolchain: stable
           profile: minimal
-      - runs: |
+      - run: |
           cd lambdas
           cargo test
