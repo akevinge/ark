@@ -82,7 +82,7 @@ async fn handler(
                 .map(|v| v.into())
                 .collect();
 
-            return Ok((StatusCode::OK, json!({ "logs": items })));
+            Ok((StatusCode::OK, json!({ "logs": items })))
         }
         Err(e) => Ok((
             StatusCode::INTERNAL_SERVER_ERROR,

@@ -34,7 +34,7 @@ async fn handler(
         _ => return malformed_body(),
     };
 
-    let scanner_log: ScannerLog = match serde_json::from_str(&body) {
+    let scanner_log: ScannerLog = match serde_json::from_str(body) {
         Ok(l) => l,
         Err(_) => return malformed_body(),
     };
