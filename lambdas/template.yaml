@@ -98,6 +98,7 @@ Resources:
           TABLE_NAME: !Select [1, !Split ["/", !GetAtt LogsTable.Arn]]
     DependsOn:
       - LogsTableReadRole
+
   ArkLogger:
     Type: AWS::Serverless::Function
     Properties:

@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "ArkStack"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1taynhflc110u"
+s3_prefix = "ark-app"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
