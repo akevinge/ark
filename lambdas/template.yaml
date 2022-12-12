@@ -5,7 +5,7 @@ Resources:
   LogsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: Logs
+      TableName: Logs_Prod
       AttributeDefinitions:
         - AttributeName: "Location"
           AttributeType: "S"
@@ -93,6 +93,9 @@ Resources:
             Path: /
             Method: get
       Role: !GetAtt LogsTableReadRole.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Select [1, !Split ["/", !GetAtt LogsTable.Arn]]
     DependsOn:
       - LogsTableReadRole
   ArkLogger:
@@ -109,6 +112,9 @@ Resources:
             Path: /
             Method: post
       Role: !GetAtt LogsTableWriteRole.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Select [1, !Split ["/", !GetAtt LogsTable.Arn]]
     DependsOn:
       - LogsTableWriteRole
 

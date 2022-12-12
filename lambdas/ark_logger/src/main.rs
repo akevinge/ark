@@ -1,3 +1,5 @@
+use std::env;
+
 use aws_sdk_dynamodb::{error::PutItemError, model::AttributeValue, output::PutItemOutput, Client};
 use aws_smithy_client::SdkError;
 use lambda_http::{http::StatusCode, service_fn, Body, Error, IntoResponse, Request};
@@ -15,13 +17,18 @@ struct ScannerLog {
 async fn main() -> Result<(), Error> {
     let config = aws_config::load_from_env().await;
     let client = Client::new(&config);
+    let table_name = env::var("TABLE_NAME")?;
 
-    lambda_http::run(service_fn(|request| handler(&client, request))).await?;
+    lambda_http::run(service_fn(|request| handler(&client, &table_name, request))).await?;
 
     Ok(())
 }
 
-async fn handler(dynamo_client: &Client, request: Request) -> Result<impl IntoResponse, Error> {
+async fn handler(
+    dynamo_client: &Client,
+    table_name: &String,
+    request: Request,
+) -> Result<impl IntoResponse, Error> {
     let body = match request.body() {
         Body::Text(text) => text,
         _ => return malformed_body(),
@@ -32,7 +39,7 @@ async fn handler(dynamo_client: &Client, request: Request) -> Result<impl IntoRe
         Err(_) => return malformed_body(),
     };
 
-    match put_item(dynamo_client, scanner_log).await {
+    match put_item(dynamo_client, table_name, scanner_log).await {
         Ok(_) => Ok((StatusCode::CREATED, json!({}))),
         Err(_) => Ok((
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -50,11 +57,12 @@ fn malformed_body() -> Result<(StatusCode, Value), Error> {
 
 async fn put_item(
     dynamo_client: &Client,
+    table_name: &String,
     log: ScannerLog,
 ) -> Result<PutItemOutput, SdkError<PutItemError>> {
     dynamo_client
         .put_item()
-        .table_name("Logs")
+        .table_name(table_name)
         .item("Location", AttributeValue::S(log.location))
         .item("CreatedAt", AttributeValue::N(log.created_at.to_string()))
         .item(
@@ -97,6 +105,7 @@ mod tests {
                     .body(SdkBody::from(""))
                     .unwrap(),
             )]),
+            &String::from("Logs"),
             mock_request(),
         )
         .await;
@@ -118,6 +127,7 @@ mod tests {
                     .body(SdkBody::from(""))
                     .unwrap(),
             )]),
+            &String::from("Logs"),
             mock_request(),
         )
         .await;

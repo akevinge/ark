@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, env};
 
 use aws_sdk_dynamodb::{error::QueryError, model::AttributeValue, output::QueryOutput, Client};
 use aws_smithy_client::SdkError;
@@ -41,13 +41,18 @@ impl From<&HashMap<String, AttributeValue>> for ScannerLog {
 async fn main() -> Result<(), Error> {
     let config = aws_config::load_from_env().await;
     let client = Client::new(&config);
+    let table_name = env::var("TABLE_NAME")?;
 
-    lambda_http::run(service_fn(|request| handler(&client, request))).await?;
+    lambda_http::run(service_fn(|request| handler(&client, &table_name, request))).await?;
 
     Ok(())
 }
 
-async fn handler(dynamo_client: &Client, request: Request) -> Result<impl IntoResponse, Error> {
+async fn handler(
+    dynamo_client: &Client,
+    table_name: &String,
+    request: Request,
+) -> Result<impl IntoResponse, Error> {
     let query_str = request.query_string_parameters();
     let start_param = query_str.first("start");
     let end_param = query_str.first("end");
@@ -68,7 +73,7 @@ async fn handler(dynamo_client: &Client, request: Request) -> Result<impl IntoRe
         }
     };
 
-    match get_item(dynamo_client, location, start, end).await {
+    match get_item(dynamo_client, table_name, location, start, end).await {
         Ok(q) => {
             let items: Vec<ScannerLog> = q
                 .items()
@@ -88,13 +93,14 @@ async fn handler(dynamo_client: &Client, request: Request) -> Result<impl IntoRe
 
 async fn get_item<'a>(
     dynamo_client: &Client,
+    table_name: &String,
     location: &'a str,
     start: u64,
     end: u64,
 ) -> Result<QueryOutput, SdkError<QueryError>> {
     dynamo_client
         .query()
-        .table_name("Logs")
+        .table_name(table_name)
         .key_condition_expression("#loc = :pk AND #created_at BETWEEN :start AND :end")
         .expression_attribute_names("#loc", "Location")
         .expression_attribute_names("#created_at", "CreatedAt")
@@ -140,6 +146,7 @@ mod tests {
                     .body(SdkBody::from(""))
                     .unwrap(),
             )]),
+            &String::from("Logs"),
             mock_request(),
         )
         .await;
@@ -161,6 +168,7 @@ mod tests {
                     .body(SdkBody::from(""))
                     .unwrap(),
             )]),
+            &String::from("Logs"),
             mock_request(),
         )
         .await;
