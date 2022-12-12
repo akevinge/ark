@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  LogsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Logs
+      AttributeDefinitions:
+        - AttributeName: "Location"
+          AttributeType: "S"
+        - AttributeName: "CreatedAt"
+          AttributeType: "N"
+      KeySchema:
+        - AttributeName: "Location"
+          KeyType: "HASH"
+        - AttributeName: "CreatedAt"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: "1"
+        WriteCapacityUnits: "1"
+
+  DynamoDBQueryPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DynamoDBQueryPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:Query
+              - dynamodb:BatchGetitem
+              - dynamodb:GetItem
+              - dynamodb:Scan
+            Resource:
+              - !GetAtt LogsTable.Arn
+      Roles:
+        - Ref: "LogsTableReadRole"
+
+  LogsTableReadRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+
+  DynamoDBWritePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DynamoDBWritePolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:PutItem
+            Resource:
+              - !GetAtt LogsTable.Arn
+      Roles:
+        - Ref: "LogsTableWriteRole"
+
+  LogsTableWriteRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+
+  ArkGetter:
+    Type: AWS::Serverless::Function
+    Properties:
+      Architectures: ["arm64"]
+      Handler: bootstrap
+      Runtime: provided.al2
+      CodeUri: target/lambda/ark_getter/
+      Events:
+        GetLogs:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+      Role: !GetAtt LogsTableReadRole.Arn
+    DependsOn:
+      - LogsTableReadRole
+  ArkLogger:
+    Type: AWS::Serverless::Function
+    Properties:
+      Architectures: ["arm64"]
+      Handler: bootstrap
+      Runtime: provided.al2
+      CodeUri: target/lambda/ark_logger/
+      Events:
+        CreateLog:
+          Type: Api
+          Properties:
+            Path: /
+            Method: post
+      Role: !GetAtt LogsTableWriteRole.Arn
+    DependsOn:
+      - LogsTableWriteRole
+
+Outputs:
+  ArkAPI:
+    Description: "API Gateway URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
+  ArkGetterFunction:
+    Description: "Created ArkGetterFunction"
+    Value: !GetAtt ArkGetter.Arn
+  ArkLoggerFunction:
+    Description: "Created ArkLoggerFunction"
+    Value: !GetAtt ArkLogger.Arn
