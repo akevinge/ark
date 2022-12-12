@@ -1,4 +1,4 @@
-name: CI-rs
+name: CI Rust Lambdas
 
 on:
   pull_request:
@@ -6,13 +6,11 @@ on:
     branches:
       - 'main'
     paths:
-      - 'ark_scanner/**'
       - 'lambdas/**'
   push:
     branches:
       - 'main'
     paths:
-      - 'ark_scanner/**'
       - 'lambdas/**'
 
 jobs:
