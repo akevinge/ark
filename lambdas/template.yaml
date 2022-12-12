@@ -19,7 +19,7 @@ Resources:
   LogsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "${ParamEnvironment}${ParamFeatureBranch}_Logs"
+      TableName: !Sub "${ParamEnvironment}${ParamFeatureBranch}-Logs"
       AttributeDefinitions:
         - AttributeName: "Location"
           AttributeType: "S"
@@ -37,7 +37,7 @@ Resources:
   DynamoDBQueryPolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: !Sub "${ParamEnvironment}${ParamFeatureBranch}_DynamoDBQueryPolicy"
+      PolicyName: !Sub "${ParamEnvironment}${ParamFeatureBranch}-DynamoDBQueryPolicy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -55,7 +55,7 @@ Resources:
   LogsTableReadRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${ParamEnvironment}${ParamFeatureBranch}_LogsTableReadRole"
+      RoleName: !Sub "${ParamEnvironment}${ParamFeatureBranch}-LogsTableReadRole"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -69,7 +69,7 @@ Resources:
   DynamoDBWritePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: !Sub "${ParamEnvironment}${ParamFeatureBranch}_DynamoDBWritePolicy"
+      PolicyName: !Sub "${ParamEnvironment}${ParamFeatureBranch}-DynamoDBWritePolicy"
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -84,7 +84,7 @@ Resources:
   LogsTableWriteRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${ParamEnvironment}${ParamFeatureBranch}_LogsTableWriteRole"
+      RoleName: !Sub "${ParamEnvironment}${ParamFeatureBranch}-LogsTableWriteRole"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
