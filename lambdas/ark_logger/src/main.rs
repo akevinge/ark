@@ -1,9 +1,6 @@
 use aws_sdk_dynamodb::{error::PutItemError, model::AttributeValue, output::PutItemOutput, Client};
 use aws_smithy_client::SdkError;
-use lambda_http::{
-    http::{Method, StatusCode},
-    service_fn, Body, Error, IntoResponse, Request,
-};
+use lambda_http::{http::StatusCode, service_fn, Body, Error, IntoResponse, Request};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -25,27 +22,22 @@ async fn main() -> Result<(), Error> {
 }
 
 async fn handler(dynamo_client: &Client, request: Request) -> Result<impl IntoResponse, Error> {
-    match *(request.method()) {
-        Method::POST => {
-            let body = match request.body() {
-                Body::Text(text) => text,
-                _ => return malformed_body(),
-            };
+    let body = match request.body() {
+        Body::Text(text) => text,
+        _ => return malformed_body(),
+    };
 
-            let scanner_log: ScannerLog = match serde_json::from_str(&body) {
-                Ok(l) => l,
-                Err(_) => return malformed_body(),
-            };
+    let scanner_log: ScannerLog = match serde_json::from_str(&body) {
+        Ok(l) => l,
+        Err(_) => return malformed_body(),
+    };
 
-            match put_item(dynamo_client, scanner_log).await {
-                Ok(_) => Ok((StatusCode::CREATED, json!({}))),
-                Err(_) => Ok((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    json!({ "message": "unable to create log" }),
-                )),
-            }
-        }
-        _ => Ok((StatusCode::OK, json!({ "message": "function is online" }))),
+    match put_item(dynamo_client, scanner_log).await {
+        Ok(_) => Ok((StatusCode::CREATED, json!({}))),
+        Err(_) => Ok((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            json!({ "message": "unable to create log" }),
+        )),
     }
 }
 
