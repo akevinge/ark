@@ -1,0 +1,58 @@
+name: CI-rs
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches:
+      - 'main'
+    paths:
+      - 'ark_scanner/**'
+      - 'lambdas/**'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'ark_scanner/**'
+      - 'lambdas/**'
+
+jobs:
+  cargo-fmt:
+    name: Cargo fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          components: rustfmt
+      - runs: |
+          cd lambdas
+          cargo fmt --all --check
+
+  cargo-clippy:
+    name: Cargo clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          components: clippy
+      - runs: |
+          cd lambdas
+          cargo clippy --all-targets -- -D warnings
+
+  cargo-test:
+    name: Cargo test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+      - runs: |
+          cd lambdas
+          cargo test
