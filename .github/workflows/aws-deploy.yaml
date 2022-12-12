@@ -1,0 +1,90 @@
+name: AWS CFN Deploy
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, reopened]
+    branches:
+      - 'main'
+    paths:
+      - 'lambdas/**'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'lambdas/**'
+
+jobs:
+  cargo-fmt:
+    name: Cargo fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          components: rustfmt
+
+      - run: cd lambdas && cargo fmt --all --check
+
+  cargo-clippy:
+    name: Cargo clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          components: clippy
+
+      - run: cd lambdas && cargo clippy --all-targets -- -D warnings
+
+  cargo-test:
+    name: Cargo test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
+      - run: cd lambdas && cargo test
+
+  deploy:
+    name: AWS CFN Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
+      - name: Install Zig
+        run: sudo snap install zig --classic --beta 
+
+      - name: Install cargo-lambda
+        run: curl -L "https://github.com/cargo-lambda/cargo-lambda/releases/download/v0.13.0/cargo-lambda-v0.13.0.x86_64-unknown-linux-musl.tar.gz" | tar xvz
+
+      - name: Build lambdas
+        working-directory: ./lambdas
+        run: ../cargo-lambda lambda build --release --arm64
+
+      - uses: aws-actions/setup-sam@v2
+
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy CFN
+        working-directory: ./lambdas
+        run: sam deploy --config-file samconfig.prod.toml

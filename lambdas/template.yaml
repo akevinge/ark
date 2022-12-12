@@ -79,6 +79,21 @@ Resources:
             Action:
               - "sts:AssumeRole"
 
+  ArkApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Auth:
+        ApiKeyRequired: true
+        UsagePlan:
+          CreateUsagePlan: PER_API
+          Quota:
+            Limit: 600
+            Period: "DAY"
+          Throttle:
+            BurstLimit: 10
+            RateLimit: 10
+
   ArkGetter:
     Type: AWS::Serverless::Function
     Properties:
@@ -92,12 +107,15 @@ Resources:
           Properties:
             Path: /
             Method: get
+            RestApiId:
+              Ref: ArkApi
       Role: !GetAtt LogsTableReadRole.Arn
       Environment:
         Variables:
           TABLE_NAME: !Select [1, !Split ["/", !GetAtt LogsTable.Arn]]
     DependsOn:
       - LogsTableReadRole
+
   ArkLogger:
     Type: AWS::Serverless::Function
     Properties:
@@ -111,6 +129,8 @@ Resources:
           Properties:
             Path: /
             Method: post
+            RestApiId:
+              Ref: ArkApi
       Role: !GetAtt LogsTableWriteRole.Arn
       Environment:
         Variables:
@@ -121,7 +141,7 @@ Resources:
 Outputs:
   ArkAPI:
     Description: "API Gateway URL"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
+    Value: !Sub "https://${ArkApi}.execute-api.${AWS::Region}.amazonaws.com/"
   ArkGetterFunction:
     Description: "Created ArkGetterFunction"
     Value: !GetAtt ArkGetter.Arn

@@ -1,4 +1,4 @@
 /target
 
 .aws-sam/
-samconfig.toml
+samconfig.local.toml

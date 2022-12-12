@@ -11,10 +11,7 @@ use std::{
 use log::log;
 use pnet::{
     packet::{
-        arp::{
-            ArpHardwareTypes::{self},
-            ArpOperations, MutableArpPacket,
-        },
+        arp::{ArpHardwareTypes, ArpOperations, MutableArpPacket},
         ethernet::{EtherTypes, MutableEthernetPacket},
         Packet,
     },
@@ -108,7 +105,7 @@ pub fn compute_subnet_ips(sample_up: Ipv4Addr, subnet_mask: Ipv4Addr) -> Vec<Ipv
 
     let mut out: Vec<Ipv4Addr> = vec![];
 
-    // ignore broadcast network
+    // skip broadcast network
     for raw in (first + 1)..last {
         out.push(Ipv4Addr::new(
             (raw >> 24) as u8,
