@@ -19,11 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
           components: rustfmt
+
       - working-directory: ./lambdas
       - run: cargo fmt --all --check
 
@@ -32,11 +34,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
           components: clippy
+
       - working-directory: ./lambdas
       - run: cargo clippy --all-targets -- -D warnings
 
@@ -45,10 +49,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
+
       - working-directory: ./lambdas
       - run: cargo test
 
@@ -57,27 +63,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
+
       - name: Install Zig
         run: snap install zig --classic --beta 
+
       - uses: jaxxstorm/action-install-gh-release@v1.8.0
         with:
           repo: cargo-lambda/cargo-lambda
           tag: v0.13.0
           platform: linux
           arch: x86-64
+
       - name: Build lambdas
         working-directory: ./lambdas
         run: cargo lambda build --release --arm64
+
       - uses: aws-actions/setup-sam@v2
+
       - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+
       - name: Deploy CFN
         working-directory: ./lambdas
         run: sam deploy --config-file
