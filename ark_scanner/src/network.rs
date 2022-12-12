@@ -11,10 +11,7 @@ use std::{
 use log::log;
 use pnet::{
     packet::{
-        arp::{
-            ArpHardwareTypes::{self},
-            ArpOperations, MutableArpPacket,
-        },
+        arp::{ArpHardwareTypes, ArpOperations, MutableArpPacket},
         ethernet::{EtherTypes, MutableEthernetPacket},
         Packet,
     },
