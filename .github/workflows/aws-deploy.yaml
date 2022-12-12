@@ -63,8 +63,7 @@ jobs:
           profile: minimal
       - name: Install Zig
         run: snap install zig --classic --beta 
-      - name: Install cargo-lambda
-        uses: jaxxstorm/action-install-gh-release@v1.8.0
+      - uses: jaxxstorm/action-install-gh-release@v1.8.0
         with:
           repo: cargo-lambda/cargo-lambda
           tag: v0.13.0
