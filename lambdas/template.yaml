@@ -102,6 +102,7 @@ Resources:
       Auth:
         ApiKeyRequired: true
         UsagePlan:
+          UsagePlanName: !Sub "${ParamEnvironment}${ParamFeatureBranch}-UsagePlan"
           CreateUsagePlan: PER_API
           Quota:
             Limit: 600
@@ -113,6 +114,7 @@ Resources:
   ArkGetter:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub "${ParamEnvironment}${ParamFeatureBranch}-LogGetter"
       Architectures: ["arm64"]
       Handler: bootstrap
       Runtime: provided.al2
@@ -135,6 +137,7 @@ Resources:
   ArkLogger:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub "${ParamEnvironment}${ParamFeatureBranch}-LogLogger"
       Architectures: ["arm64"]
       Handler: bootstrap
       Runtime: provided.al2
