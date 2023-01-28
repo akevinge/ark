@@ -17,7 +17,7 @@ type config struct {
 func loadConfig() config {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Unable to load .env file: %v", err.Error())
+		log.Printf("Unable to load .env file: %v", err.Error())
 	}
 
 	cfg := config{}
