@@ -99,7 +99,7 @@ impl<'a> Logger for APILogger<'a> {
             match response {
                 Ok(_) => {
                     log!(
-                        log::Level::Info,
+                        log::Level::Trace,
                         "successfully logged cache size to api: {}",
                         device_count
                     );

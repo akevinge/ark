@@ -25,7 +25,7 @@ fn main() {
 
     let scanner_options = load_scanner_opts();
 
-    if let Err(e) = init_logger(scanner_options.trace, scanner_options.is_production) {
+    if let Err(e) = init_logger(scanner_options.trace) {
         panic!("{}", e);
     }
 
@@ -37,22 +37,20 @@ fn main() {
     }
 }
 
-pub fn init_logger(trace: bool, is_production: bool) -> Result<(), fern::InitError> {
+pub fn init_logger(trace: bool) -> Result<(), fern::InitError> {
     let _ = fs::remove_file("scanner.log");
 
-    let mut dispatch = fern::Dispatch::new().format(|out, message, record| {
-        out.finish(format_args!(
-            "{}[{}][{}] {}",
-            chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
-            record.target(),
-            record.level(),
-            message
-        ))
-    });
-
-    if !is_production {
-        dispatch = dispatch.chain(fern::log_file("scanner.log")?);
-    }
+    let mut dispatch = fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .chain(fern::log_file("scanner.log")?);
 
     if trace {
         dispatch = dispatch.level(log::LevelFilter::Trace)

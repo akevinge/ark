@@ -1,8 +1,6 @@
 use std::{fmt::Debug, str::FromStr};
 
 pub struct ScannerOptions {
-    ///  True if ENVIRONMENT is "production"
-    pub is_production: bool,
     /// Time until mac address is considered expired, in seconds
     pub mac_addr_timeout: u64,
     /// Interval that ARP requests are sent, in seconds
@@ -50,8 +48,6 @@ where
 // Reuseable wrapper around Command
 pub fn load_scanner_opts() -> ScannerOptions {
     ScannerOptions {
-        is_production: load_env_var_optional::<String>("ENVIRONMENT")
-            == Some(String::from("production")),
         mac_addr_timeout: load_env_var("MAC_ADDR_TIMEOUT_SECS"),
         arp_scan_period: load_env_var("ARP_SCAN_PERIOD_SECS"),
         mac_cache_log_period: load_env_var("MAC_CACHE_LOG_PERIOD_SECS"),
