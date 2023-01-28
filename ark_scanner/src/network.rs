@@ -162,7 +162,7 @@ impl NetworkCommand {
         let ar: Vec<&str> = cmd.split(' ').collect();
 
         if ar.is_empty() {
-            panic!("invalid command: {}", cmd);
+            panic!("invalid command: {cmd}");
         }
 
         let ar_str: Vec<String> = ar.into_iter().map(String::from).collect();

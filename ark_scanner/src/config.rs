@@ -30,9 +30,9 @@ where
     T::Err: Debug,
 {
     dotenvy::var(key)
-        .unwrap_or_else(|_| panic!("unable to load {}", key))
+        .unwrap_or_else(|_| panic!("unable to load {key}"))
         .parse()
-        .unwrap_or_else(|_| panic!("unable to parse {}", key))
+        .unwrap_or_else(|_| panic!("unable to parse {key}"))
 }
 
 fn load_env_var_optional<T>(key: &str) -> Option<T>

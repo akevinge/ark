@@ -20,7 +20,7 @@ fn main() {
         }
     };
     if let Err(e) = dotenvy::from_path(path) {
-        panic!("unable to load {}, {}", path, e)
+        panic!("unable to load {path}, {e}")
     }
 
     let scanner_options = load_scanner_opts();

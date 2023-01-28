@@ -27,7 +27,7 @@ impl Display for ArpScannerErr {
                 }
             },
         };
-        write!(f, "[arp scanner error]: {}", message)
+        write!(f, "[arp scanner error]: {message}")
     }
 }
 
