@@ -1,0 +1,17 @@
+name: 📚 Docs Report
+title: '[docs] '
+description: Create a report to help us improve the docs
+labels: ['type: docs']
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time for making a docs report!
+        
+  - type: textarea
+    attributes:
+      label: Describe the issue with documentation
+      placeholder: Please explain why you think the docs are wrong.
+    validations:
+      required: true

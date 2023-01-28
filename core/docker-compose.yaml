@@ -1,0 +1,8 @@
+services:
+  ark-core:
+    image: cosmtrek/air
+    working_dir: /ark-core
+    ports:
+      - 8080:8080
+    volumes:
+      - ./:/ark-core/
